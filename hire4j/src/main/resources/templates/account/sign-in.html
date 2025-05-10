@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{layouts/root :: head (title=~{::title/text()})}">
+    <title>Sign In</title>
+  </head>
+  <body th:replace="~{layouts/root :: body (content=~{::main})}">
+    <main class="grow-1 flex gap-12 container">
+      <div class="flex-1 flex flex-col py-8 min-w-1/2">
+        <div class="flex flex-col gap-12 mt-auto mx-auto w-full xl:w-1/2 max-w-150">
+          <h1>Sign In</h1>
+
+          <p class="notification is-danger" th:if="${param.logout}">You have been signed out.</p>
+
+          <form class="flex flex-col gap-4" method="post" th:action="@{/account/sign-in(redirectURL=${param.redirectURL})}">
+            <div class="input-container">
+              <label class="label" for="email">Email</label>
+              <input id="email" name="username" class="input" type="email" placeholder="johndoe@example.com" />
+            </div>
+
+            <div class="input-container">
+              <label class="label" for="password">Password</label>
+              <input id="password" name="password" class="input" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" />
+              <p th:if="${param.error}" class="input-helper-text is-danger">Invalid username or password.</p>
+            </div>
+
+            <button type="submit" class="button">Sign In</button>
+          </form>
+        </div>
+
+        <p class="mt-auto text-center">
+          Don't have an account?
+          <a class="link" th:href="@{/account/sign-up}">Sign Up</a> instead.
+        </p>
+      </div>
+
+      <div class="hidden flex-1 lg:flex justify-center items-center w-full">
+        <img src="/media/sign-in.svg" alt="" class="w-full max-w-150" />
+      </div>
+    </main>
+  </body>
+</html>

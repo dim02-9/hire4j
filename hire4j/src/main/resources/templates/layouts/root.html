@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
+  <head th:fragment="head">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title><th:block th:if="${title}"> <th:block th:text="${title}" /> | </th:block>hire4j</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+
+    <link href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+    <link href="/css/styles.css" rel="stylesheet" />
+
+    <th:block th:if="${content}">
+      <th:block th:replace="${content}"></th:block>
+    </th:block>
+  </head>
+  <body th:fragment="body" th:with="Role=${T(com.github.vasilangelov.hire4j.model.Role)}">
+    <header>
+      <nav class="navigation container">
+        <div class="navigation-group">
+          <a th:href="@{/}" class="navigation-brand">hire4j</a>
+        </div>
+
+        <div class="navigation-group">
+          <a class="navigation-item" th:with="route=@{/}" th:href="${route}" th:classappend="${@thymeleafService.getRequestURI() == route} ? 'is-active'">Home</a>
+          <a class="navigation-item" th:with="route=@{/job-listings}" th:href="${route}" th:classappend="${@thymeleafService.getRequestURI() == route} ? 'is-active'">Job Search</a>
+          <a
+            class="navigation-item"
+            sec:authorize="isAuthenticated()"
+            th:with="route=@{/account/applications}"
+            th:href="${route}"
+            th:classappend="${@thymeleafService.getRequestURI() == route} ? 'is-active'"
+          >
+            My Applications
+          </a>
+
+          <th:block
+            th:if="${@thymeleafService.getUserOrganization().isPresent()}"
+            th:with="organization=${@thymeleafService.getUserOrganization().get()}"
+          >
+            <a
+              class="navigation-item"
+              th:with="route=@{/organization/{id}(id=${organization.getId()})}"
+              th:href="${route}"
+              th:text="${organization.getName()}"
+              th:classappend="${@thymeleafService.getRequestURI().startsWith(route)} ? 'is-active'"
+            ></a>
+          </th:block>
+
+          <div class="navigation-item dropdown" th:if="${@thymeleafService.isInRole(Role.ADMIN)}">
+            <button id="administration-dropdown-toggle" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" data-click-action="toggle-dropdown">
+              Admin <i class="bi bi-chevron-down dropdown-toggle-icon"></i>
+            </button>
+
+            <div class="dropdown-content" aria-labelledby="administration-dropdown-toggle">
+              <a class="dropdown-item" th:with="route=@{/admin/organizations}" th:href="${route}">Organizations</a>
+              <a class="dropdown-item" th:with="route=@{/admin/users}" th:href="${route}">Users</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="navigation-group">
+          <th:block sec:authorize="isAnonymous()">
+            <a th:href="@{/account/sign-in}" class="button is-ghost">Sign In</a>
+            <a th:href="@{/account/sign-up}" class="button">Sign Up</a>
+          </th:block>
+
+          <th:block sec:authorize="isAuthenticated()">
+            <form th:action="@{/account/sign-out}" method="post">
+              <button type="submit" class="button is-ghost">Sign Out</button>
+            </form>
+          </th:block>
+        </div>
+      </nav>
+    </header>
+
+    <div class="container is-flex-grow-0 mb-8" th:if="${errors}">
+      <div class="notification is-danger">
+        <th:block th:if="${errors.size() <= 1}" th:text="${errors[0]}"></th:block>
+
+        <ul th:if="${errors.size() > 1}" th:each="error : ${errors}">
+          <li th:text="${error}"></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container is-flex-grow-0 mb-8" th:if="${info}">
+      <div class="notification is-primary-50" th:text="${info}"></div>
+    </div>
+
+    <th:block th:if="${content}">
+      <th:block th:replace="${content}"></th:block>
+    </th:block>
+
+    <script th:src="@{/scripts/index.js}"></script>
+
+    <th:block th:if="${scripts}">
+      <th:block th:replace="${scripts}"></th:block>
+    </th:block>
+  </body>
+</html>
