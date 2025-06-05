@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{layouts/root :: head (title=~{::title/text()})}">
+    <title>Create Organization</title>
+  </head>
+  <body th:replace="~{layouts/root :: body(content=~{::main})}">
+    <main class="flex-1 flex flex-col mt-12 gap-12 mx-auto w-full xl:w-1/2 max-w-150">
+      <h1 class="text-center">Create a new Organization</h1>
+
+      <form class="flex flex-col gap-4" method="post" th:action="@{/admin/create-organization}" th:object="${organization}">
+        <div class="input-container">
+          <label class="label" for="name">Name</label>
+          <input id="name" name="name" class="input" type="text" placeholder="My Organization" th:value="*{name}" />
+          <p th:if="${#fields.hasErrors('name')}" th:text="${#fields.errors('name').getFirst()}" class="input-helper-text is-danger"></p>
+        </div>
+
+        <div class="input-container">
+          <label class="label" for="description">Description</label>
+          <textarea id="description" name="description" class="input" placeholder="An aspiring organization" th:text="*{description}"></textarea>
+          <p th:if="${#fields.hasErrors('description')}" th:text="${#fields.errors('description').getFirst()}" class="input-helper-text is-danger"></p>
+        </div>
+
+        <div class="input-container">
+          <label class="label" for="maintainerEmail">Maintainer Email</label>
+          <input id="maintainerEmail" name="maintainerEmail" class="input" type="text" placeholder="johndoe@example.com" th:value="*{maintainerEmail}" />
+          <p th:if="${#fields.hasErrors('maintainerEmail')}" th:text="${#fields.errors('maintainerEmail').getFirst()}" class="input-helper-text is-danger"></p>
+        </div>
+
+        <button type="submit" class="button">Create</button>
+      </form>
+    </main>
+  </body>
+</html>

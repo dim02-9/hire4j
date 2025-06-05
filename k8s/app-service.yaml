@@ -1,0 +1,15 @@
+# app-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hire4j-app-service
+spec:
+  selector:
+    app: hire4j-app # Must match the labels in the hire4j-app Deployment
+  ports:
+    - protocol: TCP
+      port: 8080       # Service's internal port
+      targetPort: 8080 # Port on your application container
+  type: NodePort     # Exposes the service outside the Minikube cluster
+  
+  

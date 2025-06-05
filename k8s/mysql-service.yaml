@@ -1,0 +1,12 @@
+# mysql-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql # This is the DNS name your application will use
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql # Must match the labels in the MySQL Deployment
+    tier: database
+  # type: ClusterIP is the default, which is what we want here

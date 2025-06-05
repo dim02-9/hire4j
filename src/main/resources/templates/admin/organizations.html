@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{layouts/root :: head (title=~{::title/text()})}">
+    <title>Organizations</title>
+  </head>
+  <body th:replace="~{layouts/root :: body(content=~{::main},scripts=~{::script})}">
+    <main
+      class="flex flex-col gap-16 flex-1 container"
+      th:with="Role=${T(com.github.vasilangelov.hire4j.model.Role)}">
+      <div class="flex justify-between items-start">
+        <div>
+          <h1>Organizations</h1>
+          <p class="subtitle">Manage organizations</p>
+        </div>
+
+        <a class="button has-icon" th:href="@{/admin/create-organization}">
+          <i class="bi bi-building-fill-add"></i> Create Organization
+        </a>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="flex justify-between gap-4 items-end">
+          <form class="input-container w-fit" method="get" th:href="@{/admin/organizations}">
+            <label for="organization-search" class="label">Organization</label>
+            <input id="organization-search" type="search" name="organization" class="input" th:value="${param.organization}" />
+          </form>
+
+          <a class="button is-danger has-icon" th:if="${!#strings.isEmpty(param.organization)}" th:href="@{/admin/organizations}">
+            <i class="bi bi-funnel-fill"></i> Clear Filters
+          </a>
+        </div>
+
+        <div class="overflow-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 25%">Name</th>
+                <th style="width: 30%">Description</th>
+                <th style="width: 15%"></th>
+                <th style="width: 30%">Organization Actions</th>
+              </tr>
+
+              <tr>
+                <th>Maintainer</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Maintainer Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <th:block th:each="organization : ${organizations}">
+                <tr>
+                  <td th:text="${organization.getName()}"></td>
+                  <td th:text="${#strings.abbreviate(organization.getDescription(), 25)}"></td>
+                  <td colspan="2">
+                    <div class="flex gap-2 justify-end items-center">
+                      <button
+                        class="button is-1/1"
+                        data-click-action="open-dialog"
+                        data-target-selector="#add-maintainer"
+                        th:data-organization-id="${organization.getId()}">
+                        <i class="bi bi-person-fill-add"></i>
+                      </button>
+                      <a class="button is-1/1" th:href="@{/admin/edit-organization/{id}(id=${organization.getId()})}">
+                        <i class="bi bi-building-fill-gear"></i>
+                      </a>
+                      <button
+                        class="button is-1/1 is-danger"
+                        data-click-action="open-dialog"
+                        data-target-selector="#delete-organization"
+                        th:data-organization-id="${organization.getId()}">
+                        <i class="bi bi-trash-fill"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr th:if="${organization.getMaintainers().size() == 0}">
+                  <td class="text-primary-50-contrast bg-primary-50" colspan="4"><div class="text-center">Organization has no maintainers</div></td>
+                </tr>
+
+                <tr th:each="maintainer : ${organization.getMaintainers()}">
+                  <td class="text-primary-50-contrast bg-primary-50" th:text="${maintainer.getFullName()}"></td>
+                  <td class="text-primary-50-contrast bg-primary-50" th:text="${maintainer.getEmail()}"></td>
+                  <td class="text-primary-50-contrast bg-primary-50" th:text="${maintainer.getNormalizedRoleName()}"></td>
+                  <td class="text-primary-50-contrast bg-primary-50">
+                    <div class="flex gap-2 justify-end items-center">
+                      <button
+                        class="button is-1/1 is-danger"
+                        data-click-action="open-dialog"
+                        data-target-selector="#remove-maintainer"
+                        th:data-organization-id="${organization.getId()}"
+                        th:data-maintainer-email="${maintainer.getEmail()}">
+                        <i class="bi bi-person-dash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </th:block>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <th:block th:replace="~{fragment/pagination :: pagination (totalPages=${organizations.getTotalPages()},url=@{/admin/organizations(organization=${param.organization})})}"></th:block>
+
+      <div id="add-maintainer" class="dialog">
+        <div role="dialog" class="w-150 max-w-3/4" aria-labelledby="add-maintainer-title" aria-describedby="add-maintainer-description">
+          <form class="dialog-content mx-auto w-full" th:action="@{/admin/add-organization-maintainer}" method="post">
+            <h1 id="add-maintainer-title" class="dialog-title">Add Organization Maintainer</h1>
+
+            <input id="add-maintainer-organization-id" type="hidden" name="id" />
+
+            <div class="input-container">
+              <label for="add-maintainer-email-input" class="label">Email</label>
+              <input id="add-maintainer-email-input" type="email" name="email" class="input" />
+            </div>
+
+            <div class="dialog-footer">
+              <button class="button is-primary-50" data-action="close-dialog" type="button">Cancel</button>
+              <button class="button" type="submit">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="delete-organization" class="dialog">
+        <div role="dialog" aria-labelledby="delete-organization-title" aria-describedby="delete-organization-description" class="dialog-content">
+          <h1 id="delete-organization-title" class="dialog-title">Confirm delete</h1>
+          <p id="delete-organization-description" class="dialog-description">Are you sure you want to delete this organization?</p>
+
+          <form class="dialog-footer" th:action="@{/admin/delete-organization}" method="post">
+            <input id="delete-organization-id-input" name="id" type="hidden" />
+            <button class="button is-primary-50" data-action="close-dialog" type="button">Cancel</button>
+            <button class="button is-danger" type="submit">Delete</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="remove-maintainer" class="dialog">
+        <div role="dialog" aria-labelledby="remove-maintainer-title" aria-describedby="remove-maintainer-description" class="dialog-content">
+          <h1 id="remove-maintainer-title" class="dialog-title">Confirm removal</h1>
+          <p id="remove-maintainer-description" class="dialog-description">Are you sure you want to remove this user from the organization?</p>
+
+          <form class="dialog-footer" th:action="@{/admin/remove-organization-maintainer}" method="post">
+            <input id="remove-maintainer-organization-input" name="id" type="hidden" />
+            <input id="remove-maintainer-email-input" name="email" type="hidden" />
+            <button class="button is-primary-50" data-action="close-dialog" type="button">Cancel</button>
+            <button class="button is-danger" type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const addMaintainerOrganizationInput = document.getElementById("add-maintainer-organization-id");
+      const organizationInput = document.getElementById("delete-organization-id-input");
+      const removeMaintainerOrganizationInput = document.getElementById("remove-maintainer-organization-input");
+      const removeMaintainerEmailInput = document.getElementById("remove-maintainer-email-input");
+
+      document
+        .querySelectorAll("[data-target-selector=\"#add-maintainer\"]")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            addMaintainerOrganizationInput.value = button.dataset.organizationId;
+          })
+        });
+
+      document
+        .querySelectorAll("[data-target-selector=\"#delete-organization\"]")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            organizationInput.value = button.dataset.organizationId;
+          });
+        });
+
+      document
+        .querySelectorAll("[data-target-selector=\"#remove-maintainer\"]")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            removeMaintainerOrganizationInput.value = button.dataset.organizationId;
+            removeMaintainerEmailInput.value = button.dataset.maintainerEmail;
+          });
+        });
+    </script>
+  </body>
+</html>

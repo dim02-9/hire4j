@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{layouts/root :: head (title=~{::title/text()})}">
+    <title>Home</title>
+  </head>
+  <body th:replace="~{layouts/root :: body (content=~{::#main-content}, scripts=~{::script})}">
+    <div id="main-content" class="flex flex-col gap-12 container">
+      <div class="flex justify-between gap-12 items-center max-h-150">
+        <div class="flex flex-col gap-12">
+          <div class="flex flex-col gap-4">
+            <h1> Testing if cleaning the build will this time make a successfull jenkins build - 09 <span id="text-container" class="font-bold" style="font-size: inherit; line-height: inherit">dream job</span></h1>
+
+            <p class="subtitle">
+              The best place to find your next job or hire the best talent.
+            </p>
+          </div>
+
+          <form
+            method="get"
+            class="flex items-end gap-4"
+            th:action="@{/job-listings}"
+          >
+            <div class="input-container">
+              <label for="job-search-input" class="label">Search for a job title</label>
+              <input type="search" id="job-search-input" name="search" class="input" placeholder="Java Developer" />
+            </div>
+
+            <button type="submit" class="button">Search</button>
+          </form>
+        </div>
+
+        <div class="min-h-0 self-stretch">
+          <img src="/media/hero.svg" alt="" class="w-full h-full" />
+        </div>
+      </div>
+
+      <section class="flex flex-col gap-4" th:unless="${latestJobListings.isEmpty()}">
+        <h2>See latest job offers</h2>
+
+        <div class="flex flex-col gap-12">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4 card" th:each="jobListing : ${latestJobListings}">
+              <div class="flex justify-between">
+                <div class="text-lg">
+                  <th:block th:text="${jobListing.getTitle()}"></th:block>
+                  by
+                  <th:block th:text="${jobListing.getOrganizationName()}"></th:block>
+                </div>
+                <div class="pill is-primary-50 is-lg">
+                  <i class="bi bi-geo-alt-fill"></i>
+
+                  <th:block th:text="${!jobListing.getLocation().isBlank()} ? ${jobListing.getLocation()} : 'Remote'"></th:block>
+                </div>
+              </div>
+
+              <div class="flex-1" th:text="${#strings.abbreviate(jobListing.getDescription(), 250)}"></div>
+
+              <div class="flex items-end gap-4">
+                <div class="flex-1 flex flex-wrap gap-2">
+                <span class="pill" th:each="tag : ${jobListing.getSortedTags()}">
+                  <th:block th:text="${tag}"></th:block>
+                </span>
+                </div>
+
+                <a
+                  class="button has-icon is-sm"
+                  th:href="@{/job-listings/{id}(id=${jobListing.getId()})}"
+                >
+                  Read more
+                  <i class="bi bi-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-center">To find more see the <a class="link">Job offers page</a></p>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const CLEAR_ANIMATION_SPEED_MS = 50;
+      const WRITE_ANIMATION_SPEED_MS = 25;
+      const ANIMATION_PAUSE_MS = 5000;
+
+      const textContainer = document.getElementById('text-container');
+      let index = 0;
+
+      const tokens = ['dream job', 'opportunity', 'adventure', 'passion'];
+
+      async function sleep(ms) {
+        return new Promise((resolve) => {
+          let currentTimestamp;
+
+          requestAnimationFrame(function loop (timestamp) {
+            if (!currentTimestamp) {
+              currentTimestamp = timestamp;
+            }
+
+            if (timestamp - currentTimestamp >= ms) {
+              return resolve();
+            }
+
+            requestAnimationFrame(loop);
+          });
+        });
+      }
+
+      async function clearText() {
+        const currentText = tokens[index];
+
+        for (let i = currentText.length; i >= 0; i--) {
+          textContainer.textContent = currentText.slice(0, i);
+          await sleep(CLEAR_ANIMATION_SPEED_MS);
+        }
+      }
+
+      async function writeText() {
+        const currentText = tokens[index];
+
+        for (let i = 0; i <= currentText.length; i++) {
+          textContainer.textContent = currentText.slice(0, i);
+          await sleep(WRITE_ANIMATION_SPEED_MS);
+        }
+      }
+
+      requestAnimationFrame(async function loop() {
+        await sleep(ANIMATION_PAUSE_MS);
+
+        await clearText();
+
+        index = (index + 1) % tokens.length;
+
+        await writeText();
+
+        requestAnimationFrame(loop);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{layouts/root :: head (title=${organization.getName()})}">
+    <title>Organization</title>
+  </head>
+  <body th:replace="~{layouts/root :: body(content=~{::#page-root},scripts=~{::script})}">
+    <div id="page-root" class="flex flex-col gap-4 container">
+      <div class="flex justify-between items-start">
+        <div>
+          <h1 th:text="${organization.getName()}"></h1>
+          <p class="subtitle">Manage organization</p>
+        </div>
+
+        <div class="flex gap-4 items-start">
+          <button class="button has-icon" data-click-action="open-drawer" data-target-selector="#edit-organization-drawer">
+            <i class="bi bi-building-fill-gear"></i> Edit
+          </button>
+          <button class="button has-icon" data-click-action="open-drawer" data-target-selector="#add-job-listing-drawer">
+            <i class="bi bi-file-earmark-plus-fill"></i> Add job listing
+          </button>
+        </div>
+      </div>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-lg">Active Job Listings</h2>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 25%">Title</th>
+              <th style="width: 35%;">Description</th>
+              <th style="width: 15%">New Applications</th>
+              <th style="width: 25%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="job : ${organization.getJobListings()}">
+              <td th:text="${job.getTitle()}"></td>
+              <td th:text="${#strings.abbreviate(job.getDescription(), 100)}"></td>
+              <td th:text="${job.getNewApplicationsCount()}"></td>
+              <td>
+                <div class="flex gap-2 justify-end items-center">
+                  <a
+                    class="button is-1/1 is-primary"
+                    th:href="@{/organization/{organizationId}/job-listing/{jobListingId}(organizationId=${organization.getId()},jobListingId=${job.getId()})}"
+                  >
+                    <i class="bi bi-gear-fill"></i>
+                  </a>
+
+                  <button
+                    class="button is-1/1 is-danger"
+                    data-click-action="open-dialog"
+                    data-target-selector="#remove-job"
+                    th:data-job-id="${job.getId()}"
+                  >
+                    <i class="bi bi-trash-fill"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <form
+        id="edit-organization-drawer"
+        method="post"
+        class="drawer"
+        data-click-action="close-drawer"
+        th:object="${editOrganizationRequest}"
+        th:action="@{/organization/{id}/edit(id=${organization.getId()})}"
+        th:classappend="${#fields.hasErrors()} ? 'is-visible is-open'"
+      >
+        <div class="drawer-content">
+          <div class="flex flex-col gap-10">
+            <h2>Edit <th:block th:text="${organization.getName()}"></th:block></h2>
+
+            <div class="flex flex-col gap-4">
+              <div class="input-container">
+                <label class="label" for="edit-organization-name">Name</label>
+                <input id="edit-organization-name" name="name" class="input" type="text" placeholder="My Organization" th:value="*{name}" />
+                <p th:if="${#fields.hasErrors('name')}" th:text="${#fields.errors('name').getFirst()}" class="input-helper-text is-danger"></p>
+              </div>
+
+              <div class="input-container">
+                <label class="label" for="edit-organization-description">Description</label>
+                <textarea id="edit-organization-description" name="description" class="input" placeholder="An aspiring organization" th:text="*{description}"></textarea>
+                <p th:if="${#fields.hasErrors('description')}" th:text="${#fields.errors('description').getFirst()}" class="input-helper-text is-danger"></p>
+              </div>
+
+              <button type="submit" class="button">Edit</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <form
+        id="add-job-listing-drawer"
+        method="post"
+        class="drawer"
+        data-click-action="close-drawer"
+        th:object="${createJobListingRequest}"
+        th:action="@{/organization/{id}/create-job-listing(id=${organization.getId()})}"
+        th:classappend="${#fields.hasErrors()} ? 'is-visible is-open'"
+      >
+        <div class="drawer-content">
+          <div class="flex flex-col gap-10">
+            <h2>Add job listing</h2>
+
+            <div class="flex flex-col gap-4">
+              <div class="input-container">
+                <label class="label" for="add-job-listing-title">Title</label>
+                <input id="add-job-listing-title" name="title" class="input" type="text" placeholder="Mid Java Developer" th:value="*{title}" />
+                <p th:if="${#fields.hasErrors('title')}" th:text="${#fields.errors('title').getFirst()}" class="input-helper-text is-danger"></p>
+              </div>
+
+              <div class="flex gap-4">
+                <div class="input-container w-2/3">
+                  <label class="label" for="add-job-listing-location">Location <span class="text-primary-50-contrast">(leave blank for remote)</span></label>
+                  <input id="add-job-listing-location" name="location" class="input" type="text" placeholder="Veliko Tarnovo" th:value="*{location}" />
+                  <p th:if="${#fields.hasErrors('location')}" th:text="${#fields.errors('location').getFirst()}" class="input-helper-text is-danger"></p>
+                </div>
+
+                <div class="input-container w-1/3">
+                  <label class="label" for="add-job-listing-experience">Years of experience</label>
+                  <input id="add-job-listing-experience" name="minYearsOfExperience" class="input" type="number" min="0" placeholder="0" th:value="*{minYearsOfExperience != 0} ? *{minYearsOfExperience}" />
+                  <p th:if="${#fields.hasErrors('minYearsOfExperience')}" th:text="${#fields.errors('minYearsOfExperience').getFirst()}" class="input-helper-text is-danger"></p>
+                </div>
+              </div>
+
+              <div class="input-container">
+                <label class="label" for="add-job-listing-description">Description</label>
+                <textarea id="add-job-listing-description" name="description" class="input is-lg" placeholder="An aspiring organization" th:text="*{description}"></textarea>
+                <p th:if="${#fields.hasErrors('description')}" th:text="${#fields.errors('description').getFirst()}" class="input-helper-text is-danger"></p>
+              </div>
+
+              <div class="input-container">
+                <label class="label" for="add-job-listing-tags">Tags <span class="text-primary-50-contrast">(press space to add)</span></label>
+                <input id="add-job-listing-tags" type="text" class="input" placeholder="Java" data-pill-list-target-selector="#add-job-listing-tags-list" data-pill-list-input-name="tags" />
+                <div id="add-job-listing-tags-list" class="flex flex-wrap gap-2">
+                  <div class="pill" th:each="tag : *{tags}">
+                    <input type="hidden" name="tags" th:value="${tag}" />
+                    <th:block th:text="${tag}"></th:block>
+                    <button type="button" class="pill-remove-button">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                </div>
+                <p th:if="${#fields.hasErrors('tags')}" th:text="${#fields.errors('tags').getFirst()}" class="input-helper-text is-danger"></p>
+              </div>
+
+              <button type="submit" class="button">Add</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div id="remove-job" class="dialog">
+        <div role="dialog" aria-labelledby="remove-job-title" aria-describedby="remove-job-description" class="dialog-content">
+          <h1 id="remove-job-title" class="dialog-title">Confirm removal</h1>
+          <p id="remove-job-description" class="dialog-description">Are you sure you want to remove this job listing?</p>
+
+          <form class="dialog-footer" method="post" th:action="@{/organization/{id}/remove-job-listing(id=${organization.getId()})}">
+            <input id="remove-job-id-input" name="jobListingId" type="hidden" />
+            <button class="button is-primary-50" data-action="close-dialog" type="button">Cancel</button>
+            <button class="button is-danger" type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const removeJobIdInput = document.getElementById("remove-job-id-input");
+
+      document
+        .querySelectorAll("[data-target-selector=\\#remove-job]")
+        .forEach((deleteButton) => {
+          deleteButton.addEventListener("click", () => {
+            removeJobIdInput.value = deleteButton.dataset.jobId;
+          });
+        })
+    </script>
+  </body>
+</html>
