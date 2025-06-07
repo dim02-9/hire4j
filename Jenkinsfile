@@ -23,7 +23,7 @@ pipeline {
                 
                 echo 'Checking out code...'
                 echo 'Checking out code from SCM...'
-                checkout scm /
+                checkout scm 
                 echo 'Building Java application (.jar)...'
                 sh 'mvn clean package -DskipTests'
                  
