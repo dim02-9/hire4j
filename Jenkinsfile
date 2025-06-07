@@ -1,7 +1,6 @@
-// Jenkinsfile for Kops Deployment with Docker Hub
 pipeline {
     agent {
-        label 'kopsagent' // Your Jenkins agent label
+        label 'kopsagent'
     }
 
     tools {
@@ -10,13 +9,12 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USERNAME          = 'dganev9' // Replace with your Docker Hub username
-        APP_NAME                    = 'hire4j-app'              // Your application's image name
-        DOCKER_IMAGE_NAME           = "${DOCKERHUB_USERNAME}/${APP_NAME}" // e.g., yourusername/hire4j-app
-        DOCKERHUB_CREDENTIALS_ID    = 'docker'     // The ID of the Jenkins credential you created
+        DOCKERHUB_USERNAME          = 'dganev9' 
+        APP_NAME                    = 'hire4j-app'              
+        DOCKER_IMAGE_NAME           = "${DOCKERHUB_USERNAME}/${APP_NAME}" 
+        DOCKERHUB_CREDENTIALS_ID    = 'docker'     
 
-        // Jenkins Credential ID for your Kops kubeconfig file
-        KOPS_KUBECONFIG_CREDENTIAL_ID = '331e48da-5345-4575-8b1e-b27c83a9e61c'
+        KOPS_KUBECONFIG_CREDENTIAL_ID = 'kubeconfig'
     }
 
     stages {
@@ -24,35 +22,24 @@ pipeline {
             steps {
                 
                 echo 'Checking out code...'
-                git branch: 'newbranch', url: 'https://github.com/dim02-9/hire4j.git'
+                echo 'Checking out code from SCM...'
+                checkout scm /
+                echo 'Building Java application (.jar)...'
+                sh 'mvn clean package -DskipTests'
+                 
                 
             }
         }
 
-        stage('2. Build Java Application') {
-            steps {
-                dir('hire4j') {
-                    
-                          echo 'Building Java application (.jar)...'
-                   // Assuming pom.xml is at the root of the checked-out code:
-                         sh 'mvn clean package -DskipTests'
-                 
-                    
-                }
-             
-            }
-        }
-
-        // Optional: AI Code Analysis stage if you have one
-        // stage('X. AI Code Analysis') { ... }
+    
+        
 
         stage('3. Build & Push Docker Image to Docker Hub') {
             environment {
-                IMAGE_TAG = "build-${BUILD_NUMBER}" // Unique tag for each build
+                IMAGE_TAG = "build-${BUILD_NUMBER}" 
             }
             steps {
                 script {
-                    // Assuming Dockerfile is at the root of the checked-out code
                     def dockerfilePath = '.'
 
                     echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
@@ -60,51 +47,47 @@ pipeline {
 
                     echo "Pushing Docker image to Docker Hub: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                     docker.withRegistry("https://index.docker.io/v1/", env.DOCKERHUB_CREDENTIALS_ID) {
-                        customImage.push() // This will push all tags associated with customImage, including 'latest' if built that way
-                        // To push a specific tag if you added more:
-                        // customImage.push("${IMAGE_TAG}")
+                        customImage.push() 
                     }
                     
-                    // Store the full image name with tag for the deployment stage
                     env.FULL_IMAGE_NAME_WITH_TAG = "${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
-        stage('4. Deploy to Kops Kubernetes (Staging)') {
+       stage('4. Deploy to Kops Kubernetes (Staging)') {
     steps {
-        script {
-            echo "Applying Kubernetes manifests for image ${env.FULL_IMAGE_NAME_WITH_TAG} to Kops Staging environment"
+        echo "Preparing to deploy image ${env.FULL_IMAGE_NAME_WITH_TAG} to Kops Staging environment"
 
-            withCredentials([kubeconfigContent(credentialsId: env.KOPS_KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_CONTENTS')]) {
-                sh '''
-                    echo "${KUBECONFIG_CONTENTS}" > ./kubeconfig-temp-kops
-                    export KUBECONFIG=./kubeconfig-temp-kops
+        withCredentials([file(credentialsId: env.KOPS_KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE_PATH')]) {
+            withEnv(["KUBECONFIG=${env.KUBECONFIG_FILE_PATH}"]) {
+                script {
+                    def manifestDir = 'k8s'
 
-                    kubectl apply -f k8s/mysql-secret.yaml
-                    kubectl apply -f k8s/mysql-deployment.yaml
-                    kubectl apply -f k8s/mysql-service.yaml
+                    echo "Applying prerequisite Kubernetes manifests..."
+                    sh "kubectl apply -f ${manifestDir}/mysql-secret.yaml"
+                    sh "kubectl apply -f ${manifestDir}/mysql-pvc.yaml"
+                    sh "kubectl apply -f ${manifestDir}/mysql-deployment.yaml"
+                    sh "kubectl apply -f ${manifestDir}/mysql-service.yaml"
+                    sh "kubectl apply -f ${manifestDir}/app-service.yaml" 
 
-                    
-                    kubectl set image deployment/hire4j-app-deployment hire4j-app-container=${FULL_IMAGE_NAME_WITH_TAG} --record
-                    kubectl apply -f k8s/app-deployment.yaml # Apply any other changes in the file
+                    echo "Updating application deployment manifest with new image tag..."
+                    sh "sed -i 's|IMAGE_PLACEHOLDER|${env.FULL_IMAGE_NAME_WITH_TAG}|g' ${manifestDir}/app-deployment.yaml"
 
-                                        
-                    kubectl apply -f k8s/app-service.yaml
+                    echo "Applying updated application deployment manifest..."
+                    sh "kubectl apply -f ${manifestDir}/app-deployment.yaml --record"
 
                     echo "Waiting for deployment rollout..."
-                    kubectl rollout status deployment/hire4j-app-deployment --timeout=5m
+                    sh "kubectl rollout status deployment/hire4j-app-deployment --timeout=5m"
 
-                    rm ./kubeconfig-temp-kops
-                '''
+                    echo "Deployment to Kops Staging complete."
+                }
             }
-            echo "Deployment to Kops Staging complete."
         }
     }
 }
 
-        // Optional: stage('Approval for Production') { ... }
-        // Optional: stage('Deploy to Kops Kubernetes (Production)') { ... }
+       
     }
 
     post {
@@ -115,9 +98,6 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-        always {
-            echo 'Cleaning up workspace...'
-            cleanWs() // Cleans the workspace after the build
-        }
+       
     }
 }
