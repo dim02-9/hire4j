@@ -67,26 +67,26 @@ pipeline {
 
         withCredentials([file(credentialsId: env.KOPS_KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE_PATH')]) {
             withEnv(["KUBECONFIG=${env.KUBECONFIG_FILE_PATH}"]) {
-                script {
-                def manifestDir = 'k8s'
+  script {
+    def manifestDir = 'k8s'
 
-                echo "Applying prerequisite Kubernetes manifests..."
-                sh "kubectl apply -f ${manifestDir}/mysql-secret.yaml"
-                sh "kubectl apply -f ${manifestDir}/mysql-pvc.yaml"
-                sh "kubectl apply -f ${manifestDir}/mysql-deployment.yaml"
-                sh "kubectl apply -f ${manifestDir}/mysql-service.yaml"
-                sh "kubectl apply -f ${manifestDir}/app-service.yaml" 
+    echo "Applying prerequisite Kubernetes manifests..."
+    sh "kubectl apply -f ${manifestDir}/mysql-secret.yaml"
+    sh "kubectl apply -f ${manifestDir}/mysql-pvc.yaml"
+    sh "kubectl apply -f ${manifestDir}/mysql-deployment.yaml"
+    sh "kubectl apply -f ${manifestDir}/mysql-service.yaml"
+    sh "kubectl apply -f ${manifestDir}/app-service.yaml"
 
-                echo "Updating application deployment manifest with new image tag..."
-                sh "sed -i 's|IMAGE_PLACEHOLDER|${env.FULL_IMAGE_NAME_WITH_TAG}|g' ${manifestDir}/app-deployment.yaml"
+    echo "Updating deployment image via kubectl set image..."
+    sh """
+      kubectl set image deployment/hire4j-app-deployment \
+        hire4j-app-container=${env.FULL_IMAGE_NAME_WITH_TAG} --record
+    """
 
-                echo "Applying updated application deployment manifest..."
-                sh "kubectl apply -f ${manifestDir}/app-deployment.yaml --record"
+    echo "Waiting for rollout to complete..."
+    sh "kubectl rollout status deployment/hire4j-app-deployment --timeout=5m"
 
-                echo "Waiting for deployment rollout..."
-                sh "kubectl rollout status deployment/hire4j-app-deployment --timeout=5m"
-
-                echo "Deployment to Kops Staging complete."
+    echo "Deployment to Kops Staging complete."
 
                 }
             }
