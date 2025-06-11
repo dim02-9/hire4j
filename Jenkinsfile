@@ -1,6 +1,7 @@
+// Jenkinsfile for Kops Deployment with Docker Hub
 pipeline {
     agent {
-        label 'kopsagent'
+        label 'kopsagent' // Your Jenkins agent label
     }
 
     tools {
@@ -9,72 +10,92 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USERNAME            = 'dganev9' 
-        APP_NAME                      = 'hire4j-app'
-        DOCKERHUB_CREDENTIALS_ID      = 'docker'
+        DOCKERHUB_USERNAME          = 'dganev9' // Replace with your Docker Hub username
+        APP_NAME                    = 'hire4j-app'              // Your application's image name
+        DOCKER_IMAGE_NAME           = "${DOCKERHUB_USERNAME}/${APP_NAME}" // e.g., yourusername/hire4j-app
+        DOCKERHUB_CREDENTIALS_ID    = 'docker'     // The ID of the Jenkins credential you created
+
+        // Jenkins Credential ID for your Kops kubeconfig file
         KOPS_KUBECONFIG_CREDENTIAL_ID = 'kubeconfig'
-        K8S_DEPLOYMENT_NAME           = 'hire4j-app-deployment'
-        K8S_CONTAINER_NAME            = 'hire4j-app-container'
     }
 
     stages {
         stage('1. Checkout Code') {
             steps {
-                echo 'Checking out code from SCM...'
-                checkout scm 
-            }
-        }
-
-        stage('2. Build Java Application') {
-            steps {
+                
+                echo 'Checking out code...'
+                git branch: 'newbranch2', url: 'https://github.com/dim02-9/hire4j.git'
                 echo 'Building Java application (.jar)...'
                 sh 'mvn clean package -DskipTests'
+                 
+                
             }
         }
 
-        stage('3. Build & Push Docker Image') {
+    
+        // Optional: AI Code Analysis stage if you have one
+        // stage('X. AI Code Analysis') { ... }
+
+        stage('3. Build & Push Docker Image to Docker Hub') {
+            environment {
+                IMAGE_TAG = "build-${BUILD_NUMBER}" // Unique tag for each build
+            }
             steps {
                 script {
-                    // Define the full image name with its tag in a local variable.
-                    def imageTag = "build-${env.BUILD_NUMBER}-${env.GIT_COMMIT.substring(0, 7)}"
-                    def fullImageNameWithRepo = "${env.DOCKERHUB_USERNAME}/${env.APP_NAME}:${imageTag}"
+                    // Assuming Dockerfile is at the root of the checked-out code
+                    def dockerfilePath = '.'
 
-                    // Use this local variable for all subsequent steps within this stage.
-                    echo "Building Docker image: ${fullImageNameWithRepo}"
-                    docker.build(fullImageNameWithRepo, '.')
+                    echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
+                    def customImage = docker.build("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}", dockerfilePath)
 
-                    docker.withRegistry('https://index.docker.io/v1/', env.DOCKERHUB_CREDENTIALS_ID) {
-                        echo "Pushing Docker image to Docker Hub: ${fullImageNameWithRepo}"
-                        docker.image(fullImageNameWithRepo).push()
+                    echo "Pushing Docker image to Docker Hub: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
+                    docker.withRegistry("https://index.docker.io/v1/", env.DOCKERHUB_CREDENTIALS_ID) {
+                        customImage.push() // This will push all tags associated with customImage, including 'latest' if built that way
+                        // To push a specific tag if you added more:
+                        // customImage.push("${IMAGE_TAG}")
                     }
                     
-                    // Pass the image name to the next stage by assigning it to a new environment variable.
-                    env.IMAGE_TO_DEPLOY = fullImageNameWithRepo
+                    // Store the full image name with tag for the deployment stage
+                    env.FULL_IMAGE_NAME_WITH_TAG = "${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
-        stage('4. Deploy to Kops Kubernetes') {
-            steps {
-                // Use the variable created in the previous stage.
-                echo "Preparing to deploy image ${env.IMAGE_TO_DEPLOY} to Kops environment"
+       stage('4. Deploy to Kops Kubernetes (Staging)') {
+    steps {
+        echo "Preparing to deploy image ${env.FULL_IMAGE_NAME_WITH_TAG} to Kops Staging environment"
 
-                withCredentials([file(credentialsId: env.KOPS_KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE_PATH')]) {
-                    withEnv(["KUBECONFIG=${env.KUBECONFIG_FILE_PATH}"]) {
-                        
-                        echo "Applying image ${env.IMAGE_TO_DEPLOY} to deployment..."
-                        
-                        // Use the new variable in the kubectl command.
-                        sh "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} ${env.K8S_CONTAINER_NAME}=${env.IMAGE_TO_DEPLOY}"
-                        
-                        echo "Waiting for deployment rollout..."
-                        sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} --timeout=5m"
+        withCredentials([file(credentialsId: env.KOPS_KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE_PATH')]) {
+            withEnv(["KUBECONFIG=${env.KUBECONFIG_FILE_PATH}"]) {
+                script {
+                def manifestDir = 'k8s'
 
-                        echo "Deployment to Kops Staging complete."
-                    }
+                echo "Applying prerequisite Kubernetes manifests..."
+                sh "kubectl apply -f ${manifestDir}/mysql-secret.yaml"
+                sh "kubectl apply -f ${manifestDir}/mysql-pvc.yaml"
+                sh "kubectl apply -f ${manifestDir}/mysql-deployment.yaml"
+                sh "kubectl apply -f ${manifestDir}/mysql-service.yaml"
+                sh "kubectl apply -f ${manifestDir}/app-service.yaml" 
+
+                echo "Updating application deployment manifest with new image tag..."
+                sh "sed -i 's|IMAGE_PLACEHOLDER|${env.FULL_IMAGE_NAME_WITH_TAG}|g' ${manifestDir}/app-deployment.yaml"
+
+                echo "Applying updated application deployment manifest..."
+                sh "kubectl apply -f ${manifestDir}/app-deployment.yaml --record"
+
+                echo "Waiting for deployment rollout..."
+                sh "kubectl rollout status deployment/hire4j-app-deployment --timeout=5m"
+
+                echo "Deployment to Kops Staging complete."
+
                 }
             }
         }
+    }
+}
+
+        // Optional: stage('Approval for Production') { ... }
+        // Optional: stage('Deploy to Kops Kubernetes (Production)') { ... }
     }
 
     post {
@@ -85,5 +106,9 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
+        // always {
+           // echo 'Cleaning up workspace...'
+            //cleanWs() // Cleans the workspace after the build
+        //}
     }
 }
