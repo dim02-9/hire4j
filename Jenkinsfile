@@ -101,22 +101,11 @@ pipeline {
         stage('4. Security Scanning & Reporting') {
             steps {
                 script {
-                    // Create a directory for the reports
                     sh 'mkdir -p security-reports'
-
-                    // The wget command is now REMOVED.
-                    // The 'html.tpl' file is now part of your source code.
-
-                    // This command now uses the html.tpl file from your repository.
-                    echo 'Scanning IaC files and generating report...'
-                    sh 'trivy config --format template --template "./html.tpl" --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/iac-report.html .'
-
-                    // The image scan also uses the local template file.
-                    echo 'Scanning Docker image and generating report...'
-                    sh "trivy image --format template --template './html.tpl' --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/image-report.html ${env.FULL_IMAGE_NAME_WITH_TAG}"
-
+                    sh 'trivy fs . > trivyfs.txt'
+                    sh 'trivy config . > trivyconfig.txt'
                     echo 'Archiving security reports...'
-                    archiveArtifacts artifacts: 'security-reports/*.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'security-reports/*.txt', allowEmptyArchive: true
                 }
             }
         }
