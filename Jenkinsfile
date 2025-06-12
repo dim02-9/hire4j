@@ -75,7 +75,9 @@ pipeline {
     sh "kubectl apply -f ${manifestDir}/mysql-pvc.yaml"
     sh "kubectl apply -f ${manifestDir}/mysql-deployment.yaml"
     sh "kubectl apply -f ${manifestDir}/mysql-service.yaml"
+    sh "kubectl apply -f ${manifestDir}/app-deployment.yaml"  
     sh "kubectl apply -f ${manifestDir}/app-service.yaml"
+    
 
     echo "Updating deployment image via kubectl set image..."
     sh """
