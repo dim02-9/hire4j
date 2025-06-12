@@ -102,8 +102,8 @@ pipeline {
             steps {
                 script {
                     sh 'mkdir -p security-reports'
-                    sh 'trivy fs . > trivyfs.txt'
-                    sh 'trivy config . > trivyconfig.txt'
+                    sh 'trivy fs . > security-reports/trivyfs.txt'
+                    sh 'trivy config . > security-reports/trivyconfig.txt'
                     echo 'Archiving security reports...'
                     archiveArtifacts artifacts: 'security-reports/*.txt', allowEmptyArchive: true
                 }
