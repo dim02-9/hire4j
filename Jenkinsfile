@@ -97,30 +97,24 @@ pipeline {
     }
 }
 
-// ==================== STAGE 4: SECURITY SCANNING & REPORTING (CORRECTED) ====================
+        // ==================== STAGE 4: SECURITY SCANNING & REPORTING (FINAL) ====================
         stage('4. Security Scanning & Reporting') {
             steps {
                 script {
                     // Create a directory for the reports
                     sh 'mkdir -p security-reports'
-                    
-                    // Step 1: Download the official HTML template from Trivy's GitHub repository.
-                    // This ensures the template file is always available locally.
-                    echo 'Downloading Trivy HTML report template...'
-                    sh 'wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -O html.tpl'
 
-                    // Step 2: Run the scans using the LOCAL template file.
-                    // Notice the --template flag now points to "./html.tpl"
-                    
-                    // Run the IaC scan and save the report as HTML.
+                    // The wget command is now REMOVED.
+                    // The 'html.tpl' file is now part of your source code.
+
+                    // This command now uses the html.tpl file from your repository.
                     echo 'Scanning IaC files and generating report...'
-                    sh 'trivy config --format template --template "./html.tpl" -o security-reports/iac-report.html .'
+                    sh 'trivy config --format template --template "./html.tpl" --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/iac-report.html .'
 
-                    // Run the image scan and save the report as HTML.
+                    // The image scan also uses the local template file.
                     echo 'Scanning Docker image and generating report...'
-                    sh 'trivy image --format template --template "./html.tpl" --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/image-report.html ${FULL_IMAGE_NAME_WITH_TAG}'
+                    sh "trivy image --format template --template './html.tpl' --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/image-report.html ${env.FULL_IMAGE_NAME_WITH_TAG}"
 
-                    // Step 3: Archive the generated reports.
                     echo 'Archiving security reports...'
                     archiveArtifacts artifacts: 'security-reports/*.html', allowEmptyArchive: true
                 }
