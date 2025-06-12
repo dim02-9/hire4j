@@ -106,9 +106,9 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-        // always {
-           // echo 'Cleaning up workspace...'
-            //cleanWs() // Cleans the workspace after the build
-        //}
+         always {
+            echo 'Cleaning up workspace...'
+            cleanWs() // Cleans the workspace after the build
+        }
     }
 }
