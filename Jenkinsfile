@@ -118,7 +118,7 @@ pipeline {
 
                     // Run the image scan and save the report as HTML.
                     echo 'Scanning Docker image and generating report...'
-                    sh "trivy image --format template --template "./html.tpl" --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/image-report.html ${FULL_IMAGE_NAME_WITH_TAG}"
+                    sh 'trivy image --format template --template "./html.tpl" --severity CRITICAL,HIGH,MEDIUM,LOW -o security-reports/image-report.html ${FULL_IMAGE_NAME_WITH_TAG}'
 
                     // Step 3: Archive the generated reports.
                     echo 'Archiving security reports...'
