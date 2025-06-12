@@ -14,7 +14,7 @@ spec:
         app: hire4j-app
     spec:
       containers:
-      - name: IMAGE_PLACEHOLDER
+      - name: hire4j-app-container
         image: dganev9/hire4j-app:v1 # Your application image built in Minikube's Docker
         imagePullPolicy: Always
         ports:
