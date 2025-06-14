@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: hire4j-app
+       annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/path:   '/actuator/prometheus' # The path for metrics
+        prometheus.io/port:   '8080'  
     spec:
       containers:
       - name: hire4j-app-container
