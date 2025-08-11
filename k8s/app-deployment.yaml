@@ -1,4 +1,3 @@
-# app-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,12 +13,12 @@ spec:
         app: hire4j-app
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/path:   '/actuator/prometheus' # The path for metrics
+        prometheus.io/path:   '/actuator/prometheus' 
         prometheus.io/port:   '8080'  
     spec:
       containers:
       - name: hire4j-app-container
-        image: dganev9/hire4j-app:v1 # Your application image built in Minikube's Docker
+        image: dganev9/hire4j-app:v1 
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -35,15 +34,15 @@ spec:
               key: mysql-root-password
         livenessProbe:
           httpGet:
-            path: /actuator/health/liveness # Assumes Actuator is configured
+            path: /actuator/health/liveness 
             port: 8080
-          initialDelaySeconds: 90 # Increased initial delay
+          initialDelaySeconds: 90 
           periodSeconds: 15
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /actuator/health/readiness # Assumes Actuator is configured
+            path: /actuator/health/readiness 
             port: 8080
-          initialDelaySeconds: 45 # Increased initial delay
+          initialDelaySeconds: 45 
           periodSeconds: 10
           timeoutSeconds: 5
