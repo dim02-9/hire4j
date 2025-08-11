@@ -1,7 +1,6 @@
-// Jenkinsfile for Kops Deployment with Docker Hub
 pipeline {
     agent {
-        label 'kopsagent' // Your Jenkins agent label
+        label 'kopsagent' 
     }
 
     tools {
@@ -10,12 +9,11 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USERNAME          = 'dganev9' // Replace with your Docker Hub username
-        APP_NAME                    = 'hire4j-app'              // Your application's image name
-        DOCKER_IMAGE_NAME           = "${DOCKERHUB_USERNAME}/${APP_NAME}" // e.g., yourusername/hire4j-app
-        DOCKERHUB_CREDENTIALS_ID    = 'docker'     // The ID of the Jenkins credential you created
+        DOCKERHUB_USERNAME          = 'dganev9' 
+        APP_NAME                    = 'hire4j-app'              
+        DOCKER_IMAGE_NAME           = "${DOCKERHUB_USERNAME}/${APP_NAME}" 
+        DOCKERHUB_CREDENTIALS_ID    = 'docker'     
 
-        // Jenkins Credential ID for your Kops kubeconfig file
         KOPS_KUBECONFIG_CREDENTIAL_ID = 'kubeconfig'
     }
 
@@ -33,17 +31,14 @@ pipeline {
         }
 
     
-        // Optional: AI Code Analysis stage if you have one
-        // stage('X. AI Code Analysis') { ... }
-        
+      
 
         stage('3. Build & Push Docker Image to Docker Hub') {
             environment {
-                IMAGE_TAG = "build-${BUILD_NUMBER}" // Unique tag for each build
+                IMAGE_TAG = "build-${BUILD_NUMBER}" 
             }
             steps {
                 script {
-                    // Assuming Dockerfile is at the root of the checked-out code
                     def dockerfilePath = '.'
 
                     echo "Building Docker image: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
@@ -52,11 +47,8 @@ pipeline {
                     echo "Pushing Docker image to Docker Hub: ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                     docker.withRegistry("https://index.docker.io/v1/", env.DOCKERHUB_CREDENTIALS_ID) {
                         customImage.push() // This will push all tags associated with customImage, including 'latest' if built that way
-                        // To push a specific tag if you added more:
-                        // customImage.push("${IMAGE_TAG}")
                     }
                     
-                    // Store the full image name with tag for the deployment stage
                     env.FULL_IMAGE_NAME_WITH_TAG = "${DOCKER_IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
@@ -97,7 +89,6 @@ pipeline {
     }
 }
 
-        // ==================== STAGE 4: SECURITY SCANNING & REPORTING (FINAL) ====================
         stage('4. Security Scanning & Reporting') {
             steps {
                 script {
@@ -110,8 +101,6 @@ pipeline {
             }
         }
 
-        // Optional: stage('Approval for Production') { ... }
-        // Optional: stage('Deploy to Kops Kubernetes (Production)') { ... }
     }
 
     post {
@@ -124,7 +113,7 @@ pipeline {
         }
           always {
              echo 'Cleaning up workspace...'
-             cleanWs() // Cleans the workspace after the build
+             cleanWs() 
          }
     }
 }
